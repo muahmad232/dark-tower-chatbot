@@ -1,6 +1,6 @@
 # Dark Tower Chatbot
 
-An intelligent chatbot for answering questions about Stephen King's Dark Tower series, powered by semantic search and FAISS vector indexing.
+An intelligent RAG-powered chatbot for answering questions about Stephen King's Dark Tower series. Uses semantic search with FAISS vector indexing and Groq's Llama model for natural language responses.
 
 ## Features
 
@@ -8,10 +8,12 @@ An intelligent chatbot for answering questions about Stephen King's Dark Tower s
 - **Semantic Chunking**: Paragraph-aware text chunking with metadata classification (definition, background, plot, death, summary, location)
 - **Query-Aware Retrieval**: Intent detection that prioritizes relevant chunk types based on query patterns
 - **Category Matching**: Boosts results from matching categories (character queries → character chunks, etc.)
+- **LLM-Powered Responses**: Uses Groq API with Llama 3.1 for well-structured, contextual answers
 
 ## Project Structure
 
 ```
+├── chatbot.py             # Main chatbot with Groq LLM integration
 ├── scraper/
 │   ├── scrape_all.py      # Comprehensive wiki scraper with category discovery
 │   └── scrape_page.py     # Single page scraper with infobox/section parsing
@@ -47,12 +49,33 @@ An intelligent chatbot for answering questions about Stephen King's Dark Tower s
 
 3. Install dependencies:
    ```bash
-   pip install requests beautifulsoup4 lxml tiktoken sentence-transformers faiss-cpu
+   pip install requests beautifulsoup4 lxml tiktoken sentence-transformers faiss-cpu groq python-dotenv
    ```
+
+4. Set up your API key:
+   ```bash
+   # Create .env file
+   echo "GROQ_API_KEY=your_api_key_here" > .env
+   ```
+   Get your free API key at: https://console.groq.com/keys
 
 ## Usage
 
-### 1. Scrape Wiki Data
+### Run the Chatbot
+
+```bash
+python chatbot.py
+```
+
+Commands in chat:
+- Type your question and press Enter
+- `sources off` - Hide source references
+- `sources on` - Show source references  
+- `quit` or `exit` - End the conversation
+
+### Rebuild the Knowledge Base
+
+#### 1. Scrape Wiki Data
 
 ```bash
 # Scrape important pages only
@@ -62,19 +85,19 @@ python scraper/scrape_all.py --important-only --delay 0.3
 python scraper/scrape_all.py --delay 0.5
 ```
 
-### 2. Process and Chunk Text
+#### 2. Process and Chunk Text
 
 ```bash
 python processor/chunk_text.py
 ```
 
-### 3. Build FAISS Index
+#### 3. Build FAISS Index
 
 ```bash
 python embeddings/build_index.py
 ```
 
-### 4. Test Search
+#### 4. Test Search (Optional)
 
 ```bash
 python embeddings/test_search.py
@@ -92,6 +115,7 @@ The system categorizes content into:
 
 ## Technical Details
 
+- **LLM**: Groq API with `llama-3.1-8b-instant`
 - **Embedding Model**: `all-MiniLM-L6-v2` (384 dimensions)
 - **Vector Index**: FAISS IndexFlatIP (inner product similarity)
 - **Chunk Size**: 300 tokens with 75 token overlap
