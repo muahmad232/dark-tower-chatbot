@@ -19,8 +19,20 @@ EMBEDDINGS_DIR = "embeddings"
 INDEX_PATH = os.path.join(EMBEDDINGS_DIR, "index.faiss")
 METADATA_PATH = os.path.join(EMBEDDINGS_DIR, "metadata.json")
 
-# System prompt for the chatbot
-SYSTEM_PROMPT = """You are a knowledgeable assistant specializing in Stephen King's Dark Tower series. 
+# Book order for spoiler protection
+BOOK_ORDER = [
+    ("The Gunslinger", ["gunslinger", "dark tower i", "dark tower 1"]),
+    ("The Drawing of the Three", ["drawing of the three", "dark tower ii", "dark tower 2"]),
+    ("The Waste Lands", ["waste lands", "dark tower iii", "dark tower 3"]),
+    ("Wizard and Glass", ["wizard and glass", "dark tower iv", "dark tower 4"]),
+    ("Wolves of the Calla", ["wolves of the calla", "dark tower v", "dark tower 5"]),
+    ("Song of Susannah", ["song of susannah", "dark tower vi", "dark tower 6"]),
+    ("The Dark Tower", ["dark tower vii", "dark tower 7", "the dark tower vii"]),
+    ("The Wind Through the Keyhole", ["wind through the keyhole", "dark tower 4.5"]),
+]
+
+# Base system prompt
+BASE_SYSTEM_PROMPT = """You are a knowledgeable assistant specializing in Stephen King's Dark Tower series. 
 You answer questions ONLY based on the provided context from the Dark Tower wiki.
 
 Guidelines:
@@ -33,6 +45,62 @@ Guidelines:
 - If asked about something not in the context, say "I don't have information about that in my knowledge base."
 
 Remember: You are a Dark Tower expert. Speak with authority but stay faithful to the source material."""
+
+# Spoiler-free system prompt addition
+SPOILER_FREE_PROMPT = """
+
+⚠️ CRITICAL SPOILER PROTECTION RULES:
+- The user has NOT finished the series or wants to avoid spoilers
+- Give ONLY general overviews and introductions for characters/places/events
+- NEVER reveal character deaths, major plot twists, or story endings
+- NEVER mention what happens to characters in later books
+- If asked about deaths, fates, or endings, say: "I can't reveal that without spoilers. Type 'spoilers on' if you want full details."
+- Focus on: character introductions, general descriptions, early appearances, and basic relationships
+- Avoid: death scenes, betrayals, major revelations, final fates, ending details"""
+
+# Book-limited system prompt addition
+BOOK_LIMITED_PROMPT = """
+
+⚠️ CRITICAL BOOK-LIMIT RULES:
+- The user has only read up to: {book_limit}
+- ONLY include information from books up to and including this one
+- DO NOT mention ANY events, deaths, or revelations from later books
+- If asked about something that happens after their current book, say: "That happens in a later book. Keep reading!"
+- Books in order: The Gunslinger → Drawing of the Three → Waste Lands → Wizard and Glass → Wolves of the Calla → Song of Susannah → The Dark Tower"""
+
+# Conversational patterns for a more human feel
+GREETINGS = ['hi', 'hello', 'hey', 'greetings', 'howdy', 'hiya', 'yo', 'sup', "what's up", 'good morning', 'good afternoon', 'good evening']
+HOW_ARE_YOU = ['how are you', 'how do you do', "how's it going", 'how are things', 'you doing', 'how you doing', "what's going on"]
+THANKS = ['thanks', 'thank you', 'thx', 'ty', 'appreciate', 'grateful', 'thankee', 'thankee-sai']
+GOODBYES = ['bye', 'goodbye', 'see you', 'later', 'farewell', 'take care', 'cya', 'gotta go']
+HELP_WORDS = ['help', 'commands', 'what can you do', 'how do i use', 'instructions']
+
+# Dark Tower themed responses
+GREETING_RESPONSES = [
+    "Long days and pleasant nights, traveler! I am a humble keeper of Dark Tower lore. What knowledge do you seek?",
+    "Hile, gunslinger! The wheel of ka has brought you here. Ask me of Roland's world, and I shall answer.",
+    "Well met, sai! I walk the path of the Beam, carrying tales of Mid-World. What would you know?",
+]
+
+HOW_ARE_YOU_RESPONSES = [
+    "I fare well, thankee-sai! The Tower stands, and so do I. How may I serve your quest for knowledge?",
+    "All things serve the Beam, and I am no different. I am here and ready to share what I know of Roland's journey.",
+    "Ka like the wind, sai - I go where I'm needed. Today, I'm here to answer your questions about the Dark Tower.",
+]
+
+THANKS_RESPONSES = [
+    "Thankee-sai! May your journey to the Tower be swift and true.",
+    "You're welcome, traveler. We are ka-tet now, bound by these words.",
+    "Long days and pleasant nights to you as well! The sharing of knowledge is its own reward.",
+    "Say thankya, and I say thankya back! It's been my honor.",
+]
+
+GOODBYE_RESPONSES = [
+    "Long days and pleasant nights, sai. May you have twice the number!",
+    "Farewell, traveler. Remember: ka is a wheel, and we may meet again.",
+    "Go then, there are other worlds than these. Until our paths cross again!",
+    "May the Man Jesus watch over you, and may you reach your Tower.",
+]
 
 
 class DarkTowerChatbot:
@@ -57,7 +125,92 @@ class DarkTowerChatbot:
         self.groq = Groq(api_key=os.getenv("GROQ_API_KEY"))
         self.llm_model = "llama-3.1-8b-instant"  # Fast, free model
         
+        # Spoiler protection settings
+        self.spoiler_mode = False  # False = spoiler-free, True = full spoilers allowed
+        self.book_limit = None     # None = no limit, or book name string
+        
         print("✅ Chatbot ready!\n")
+    
+    def handle_conversation(self, message: str) -> str | None:
+        """Handle casual conversation. Returns response or None if not conversational."""
+        import random
+        msg_lower = message.lower().strip('!?.,')
+        
+        # Check greetings
+        if any(greet in msg_lower for greet in GREETINGS) and len(message.split()) <= 4:
+            return random.choice(GREETING_RESPONSES)
+        
+        # Check how are you
+        if any(phrase in msg_lower for phrase in HOW_ARE_YOU):
+            return random.choice(HOW_ARE_YOU_RESPONSES)
+        
+        # Check thanks
+        if any(thank in msg_lower for thank in THANKS):
+            return random.choice(THANKS_RESPONSES)
+        
+        # Check goodbyes (but not quit commands - those are handled separately)
+        if any(bye in msg_lower for bye in GOODBYES) and msg_lower not in ['quit', 'exit', 'q']:
+            return random.choice(GOODBYE_RESPONSES)
+        
+        # Check help
+        if any(h in msg_lower for h in HELP_WORDS):
+            return self.get_help_message()
+        
+        return None
+    
+    def get_help_message(self) -> str:
+        """Return Dark Tower themed help message."""
+        return """🗼 **The Way of the Gunslinger** 🗼
+
+Ask me anything about Roland's world - characters, places, events, ka, and more!
+
+**Speak these words to command the path:**
+
+*Spoiler Protection (for those still on the path):*
+  • `spoilers on` - "I would know all, even unto death"
+  • `spoilers off` - "Shield mine eyes from what lies ahead"
+  • `read until [book]` - "I have journeyed only this far..."
+  • `read all` - "I have seen the Tower"
+
+*Other incantations:*
+  • `sources on/off` - Show or hide the ancient texts I draw from
+  • `status` - "Where do I stand on ka's wheel?"
+  • `quit` - "I go now. There are other worlds than these."
+
+Now, traveler... what would you know?"""
+    
+    def get_book_index(self, book_name: str) -> int:
+        """Get the index of a book in the series order."""
+        book_lower = book_name.lower()
+        for i, (name, aliases) in enumerate(BOOK_ORDER):
+            if book_lower in name.lower() or any(alias in book_lower for alias in aliases):
+                return i
+        return -1
+    
+    def set_book_limit(self, user_input: str) -> str:
+        """Parse and set the book limit from user input."""
+        input_lower = user_input.lower()
+        
+        for name, aliases in BOOK_ORDER:
+            if name.lower() in input_lower or any(alias in input_lower for alias in aliases):
+                self.book_limit = name
+                return f"📖 I understand, sai. Your journey has reached **{name}**.\n   I shall speak only of what you have seen, and guard the path ahead."
+        
+        # Show available books if not found
+        book_list = "\n".join([f"  {i+1}. {name}" for i, (name, _) in enumerate(BOOK_ORDER)])
+        return f"❓ Forgive me, traveler - I could not discern your path. Which book marks your journey?\n{book_list}"
+    
+    def get_system_prompt(self) -> str:
+        """Build the system prompt based on spoiler settings."""
+        prompt = BASE_SYSTEM_PROMPT
+        
+        if not self.spoiler_mode:
+            prompt += SPOILER_FREE_PROMPT
+        
+        if self.book_limit:
+            prompt += BOOK_LIMITED_PROMPT.format(book_limit=self.book_limit)
+        
+        return prompt
     
     def classify_query_intent(self, query: str) -> tuple:
         """Classify the intent and category of a query."""
@@ -152,7 +305,7 @@ class DarkTowerChatbot:
         results = self.search(question, top_k=5)
         
         if not results:
-            return "I couldn't find any relevant information in my knowledge base."
+            return "The mist obscures my vision, sai. I cannot find that knowledge in my memories of Mid-World. Perhaps try asking in a different way?"
         
         # Build context
         context = self.build_context(results)
@@ -165,12 +318,15 @@ USER QUESTION: {question}
 
 Please provide a helpful, accurate answer based solely on the context above."""
 
+        # Get the appropriate system prompt based on spoiler settings
+        system_prompt = self.get_system_prompt()
+
         # Get response from Groq
         try:
             response = self.groq.chat.completions.create(
                 model=self.llm_model,
                 messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_message}
                 ],
                 temperature=0.7,
@@ -191,13 +347,23 @@ Please provide a helpful, accurate answer based solely on the context above."""
     
     def chat(self):
         """Interactive chat loop."""
-        print("=" * 60)
-        print("🗼 DARK TOWER CHATBOT")
-        print("=" * 60)
-        print("Ask me anything about the Dark Tower series!")
-        print("Type 'quit' or 'exit' to end the conversation.")
-        print("Type 'sources off' to hide sources, 'sources on' to show them.")
-        print("=" * 60 + "\n")
+        print("")
+        print("    ╔══════════════════════════════════════════════════════╗")
+        print("    ║              🗼 THE DARK TOWER ORACLE 🗼              ║")
+        print("    ║         \"Go then, there are other worlds...\"         ║")
+        print("    ╚══════════════════════════════════════════════════════╝")
+        print("")
+        print("    Hile, traveler! I am a keeper of Mid-World's memories.")
+        print("    Ask me of Roland, his ka-tet, and the path to the Tower.")
+        print("")
+        print("    ─────────── The Way of Spoiler Protection ───────────")
+        print("    For those still walking the path, I guard my tongue.")
+        print("    Say 'help' to learn the words of command.")
+        print("    Say 'read until [book]' to mark your journey's progress.")
+        print("    ────────────────────────────────────────────────────────")
+        print("")
+        print("    🛡️ Ka guides my words carefully - no spoilers shall pass.")
+        print("       (Say 'spoilers on' if you've reached the Tower)\n")
         
         show_sources = True
         
@@ -208,18 +374,62 @@ Please provide a helpful, accurate answer based solely on the context above."""
                 if not question:
                     continue
                 
-                if question.lower() in ['quit', 'exit', 'q']:
+                question_lower = question.lower()
+                
+                # Exit commands
+                if question_lower in ['quit', 'exit', 'q']:
                     print("\n👋 Long days and pleasant nights!")
                     break
                 
-                if question.lower() == 'sources off':
+                # Source toggle
+                if question_lower == 'sources off':
                     show_sources = False
                     print("📚 Sources hidden.\n")
                     continue
                 
-                if question.lower() == 'sources on':
+                if question_lower == 'sources on':
                     show_sources = True
                     print("📚 Sources will be shown.\n")
+                    continue
+                
+                # Spoiler mode toggle
+                if question_lower == 'spoilers on':
+                    self.spoiler_mode = True
+                    print("⚠️ So be it, sai. You have chosen to see all, even unto the clearing at the end of the path.")
+                    print("   I will speak freely of deaths, endings, and all that befalls.\n")
+                    continue
+                
+                if question_lower == 'spoilers off':
+                    self.spoiler_mode = False
+                    print("🛡️ Wise choice, traveler. I shall guard my tongue against revelations.")
+                    print("   The path is best walked without knowing where it ends.\n")
+                    continue
+                
+                # Book limit commands
+                if question_lower.startswith('read until') or question_lower.startswith('i read until') or question_lower.startswith("i've read until") or question_lower.startswith('only read'):
+                    result = self.set_book_limit(question)
+                    print(result + "\n")
+                    continue
+                
+                if question_lower in ['read all', 'finished', 'read everything', 'no limit', 'i finished', "i've finished"]:
+                    self.book_limit = None
+                    print("📚 You have seen the Tower! I may speak freely of all seven books.")
+                    print("   (Spoiler settings still apply - say 'spoilers on' for full details)\n")
+                    continue
+                
+                # Status command
+                if question_lower == 'status':
+                    spoiler_status = "All is revealed" if self.spoiler_mode else "Guarded (no spoilers)"
+                    book_status = self.book_limit if self.book_limit else "The entire journey"
+                    print(f"📊 Your Position on Ka's Wheel:")
+                    print(f"   🔮 Spoiler mode: {spoiler_status}")
+                    print(f"   📖 Journey progress: {book_status}\n")
+                    continue
+                
+                # Check for casual conversation first
+                convo_response = self.handle_conversation(question)
+                if convo_response:
+                    print(f"\n🤖 Gunslinger Bot:\n{convo_response}\n")
                     continue
                 
                 print("\n🤖 Gunslinger Bot:")
