@@ -11,7 +11,7 @@ from typing import Optional
 from contextlib import asynccontextmanager
 
 # Import chatbot components
-from chatbot import DarkTowerChatbot
+from backend.chatbot import DarkTowerChatbot
 
 # Global chatbot instance
 chatbot: Optional[DarkTowerChatbot] = None
@@ -192,7 +192,7 @@ async def update_settings(request: SettingsRequest):
 @app.get("/books")
 async def list_books():
     """List all Dark Tower books in reading order."""
-    from chatbot import BOOK_ORDER
+    from backend.chatbot import BOOK_ORDER
     
     books = [
         {"number": i + 1, "title": name, "aliases": aliases}
@@ -205,8 +205,9 @@ async def list_books():
     }
 
 
-# Run with: uvicorn server:app --reload
+# Run with: uvicorn backend.server:app --reload (from root)
+# Or: uvicorn server:app --reload (from backend/)
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("server:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run("backend.server:app", host="0.0.0.0", port=port, reload=True)

@@ -13,21 +13,26 @@ An intelligent RAG-powered chatbot for answering questions about Stephen King's 
 ## Project Structure
 
 ```
-├── chatbot.py             # Main chatbot with Groq LLM integration
-├── scraper/
-│   ├── scrape_all.py      # Comprehensive wiki scraper with category discovery
-│   └── scrape_page.py     # Single page scraper with infobox/section parsing
-├── processor/
-│   └── chunk_text.py      # Category-aware semantic chunking
-├── embeddings/
-│   ├── build_index.py     # FAISS index builder
-│   └── test_search.py     # Query-aware search with intent detection
-├── data/
-│   ├── raw_pages.json     # Scraped wiki data
-│   └── chunks.json        # Processed chunks with metadata
-└── embeddings/
-    ├── index.faiss        # FAISS vector index
-    └── metadata.json      # Chunk metadata for retrieval
+├── backend/
+│   ├── chatbot.py         # Main chatbot with Groq LLM integration
+│   ├── server.py          # FastAPI server for API access
+│   ├── scraper/
+│   │   ├── scrape_all.py  # Comprehensive wiki scraper
+│   │   └── scrape_page.py # Single page scraper
+│   ├── processor/
+│   │   └── chunk_text.py  # Category-aware semantic chunking
+│   ├── embeddings/
+│   │   ├── build_index.py # FAISS index builder
+│   │   ├── test_search.py # Search testing
+│   │   ├── index.faiss    # Vector index
+│   │   └── metadata.json  # Chunk metadata
+│   └── data/
+│       ├── raw_pages.json # Scraped wiki data
+│       └── chunks.json    # Processed chunks
+├── requirements.txt       # Python dependencies
+├── Procfile              # Render deployment
+├── render.yaml           # Render configuration
+└── .env                  # API keys (not in git)
 ```
 
 ## Installation
@@ -61,17 +66,39 @@ An intelligent RAG-powered chatbot for answering questions about Stephen King's 
 
 ## Usage
 
-### Run the Chatbot
+### Run the API Server
 
 ```bash
-python chatbot.py
+# From project root
+uvicorn backend.server:app --reload
+```
+
+Then visit: http://localhost:8000/docs for interactive API documentation.
+
+### Run the CLI Chatbot
+
+```bash
+python -m backend.chatbot
 ```
 
 Commands in chat:
 - Type your question and press Enter
+- `spoilers on/off` - Toggle spoiler protection
+- `read until [book]` - Set your reading progress
 - `sources off` - Hide source references
 - `sources on` - Show source references  
+- `help` - Show all commands
 - `quit` or `exit` - End the conversation
+
+### API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/` | GET | Welcome message |
+| `/health` | GET | Health check |
+| `/chat` | POST | Ask a question |
+| `/settings` | GET/POST | View/update spoiler settings |
+| `/books` | GET | List books in order |
 
 ### Rebuild the Knowledge Base
 
@@ -79,28 +106,28 @@ Commands in chat:
 
 ```bash
 # Scrape important pages only
-python scraper/scrape_all.py --important-only --delay 0.3
+python backend/scraper/scrape_all.py --important-only --delay 0.3
 
 # Scrape all discovered pages (takes longer)
-python scraper/scrape_all.py --delay 0.5
+python backend/scraper/scrape_all.py --delay 0.5
 ```
 
 #### 2. Process and Chunk Text
 
 ```bash
-python processor/chunk_text.py
+python backend/processor/chunk_text.py
 ```
 
 #### 3. Build FAISS Index
 
 ```bash
-python embeddings/build_index.py
+python backend/embeddings/build_index.py
 ```
 
 #### 4. Test Search (Optional)
 
 ```bash
-python embeddings/test_search.py
+python backend/embeddings/test_search.py
 ```
 
 ## Categories

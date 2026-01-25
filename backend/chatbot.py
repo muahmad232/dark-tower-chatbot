@@ -11,11 +11,13 @@ from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
 from groq import Groq
 
-# Load environment variables
+# Load environment variables (look in parent directory too)
 load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
-# Paths
-EMBEDDINGS_DIR = "embeddings"
+# Paths - relative to this file's location
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+EMBEDDINGS_DIR = os.path.join(BASE_DIR, "embeddings")
 INDEX_PATH = os.path.join(EMBEDDINGS_DIR, "index.faiss")
 METADATA_PATH = os.path.join(EMBEDDINGS_DIR, "metadata.json")
 
