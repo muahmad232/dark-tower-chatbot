@@ -13,26 +13,27 @@ An intelligent RAG-powered chatbot for answering questions about Stephen King's 
 ## Project Structure
 
 ```
-├── backend/
-│   ├── chatbot.py         # Main chatbot with Groq LLM integration
-│   ├── server.py          # FastAPI server for API access
+├── backend/                  # Deploy this folder to Render
+│   ├── chatbot.py            # Main chatbot with Groq LLM
+│   ├── server.py             # FastAPI server
+│   ├── requirements.txt      # Python dependencies
+│   ├── Procfile              # Render start command
+│   ├── render.yaml           # Render configuration
+│   ├── .env                  # API keys (create this, not in git)
 │   ├── scraper/
-│   │   ├── scrape_all.py  # Comprehensive wiki scraper
-│   │   └── scrape_page.py # Single page scraper
+│   │   ├── scrape_all.py     # Wiki scraper
+│   │   └── scrape_page.py    # Single page scraper
 │   ├── processor/
-│   │   └── chunk_text.py  # Category-aware semantic chunking
+│   │   └── chunk_text.py     # Text chunking
 │   ├── embeddings/
-│   │   ├── build_index.py # FAISS index builder
-│   │   ├── test_search.py # Search testing
-│   │   ├── index.faiss    # Vector index
-│   │   └── metadata.json  # Chunk metadata
+│   │   ├── build_index.py    # FAISS index builder
+│   │   ├── test_search.py    # Search testing
+│   │   ├── index.faiss       # Vector index
+│   │   └── metadata.json     # Chunk metadata
 │   └── data/
-│       ├── raw_pages.json # Scraped wiki data
-│       └── chunks.json    # Processed chunks
-├── requirements.txt       # Python dependencies
-├── Procfile              # Render deployment
-├── render.yaml           # Render configuration
-└── .env                  # API keys (not in git)
+│       ├── raw_pages.json    # Scraped wiki data
+│       └── chunks.json       # Processed chunks
+└── README.md
 ```
 
 ## Installation
@@ -66,11 +67,17 @@ An intelligent RAG-powered chatbot for answering questions about Stephen King's 
 
 ## Usage
 
-### Run the API Server
+### Run the API Server (locally)
 
 ```bash
-# From project root
-uvicorn backend.server:app --reload
+cd backend
+uvicorn server:app --reload
+```
+
+Or with Python directly:
+```bash
+cd backend
+python server.py
 ```
 
 Then visit: http://localhost:8000/docs for interactive API documentation.
@@ -78,7 +85,8 @@ Then visit: http://localhost:8000/docs for interactive API documentation.
 ### Run the CLI Chatbot
 
 ```bash
-python -m backend.chatbot
+cd backend
+python chatbot.py
 ```
 
 Commands in chat:
@@ -105,30 +113,38 @@ Commands in chat:
 #### 1. Scrape Wiki Data
 
 ```bash
-# Scrape important pages only
-python backend/scraper/scrape_all.py --important-only --delay 0.3
+cd backend
+python scraper/scrape_all.py --important-only --delay 0.3
 
 # Scrape all discovered pages (takes longer)
-python backend/scraper/scrape_all.py --delay 0.5
+python scraper/scrape_all.py --delay 0.5
 ```
 
 #### 2. Process and Chunk Text
 
 ```bash
-python backend/processor/chunk_text.py
+python processor/chunk_text.py
 ```
 
 #### 3. Build FAISS Index
 
 ```bash
-python backend/embeddings/build_index.py
+python embeddings/build_index.py
 ```
 
 #### 4. Test Search (Optional)
 
 ```bash
-python backend/embeddings/test_search.py
+python embeddings/test_search.py
 ```
+
+## Deployment to Render
+
+1. Push to GitHub
+2. Create new Web Service on Render
+3. Set **Root Directory** to `backend`
+4. Add `GROQ_API_KEY` in Environment Variables
+5. Deploy!
 
 ## Categories
 
