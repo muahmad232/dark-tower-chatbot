@@ -1,0 +1,39 @@
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# IDE
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
+
+# Local env files
+.env
+.env.local
+
+# Scraper (not needed for deployment - data already scraped)
+scraper/
+
+# Processor (not needed for deployment - chunks already processed)  
+processor/
+
+# Raw data (not needed - only chunks.json and embeddings needed)
+data/raw_pages.json
+
+# Tests
+*_test.py
+test_*.py
+
+# Docs
+*.md
+LICENSE
