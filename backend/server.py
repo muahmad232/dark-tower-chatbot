@@ -7,14 +7,30 @@ import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Import chatbot components
 from chatbot import DarkTowerChatbot
 
 # Global chatbot instance
 chatbot: Optional[DarkTowerChatbot] = None
+
+
+def get_allowed_origins() -> List[str]:
+    """Get allowed CORS origins from environment variable."""
+    origins_str = os.getenv("ALLOWED_ORIGINS", "")
+    if not origins_str:
+        # Default origins for development
+        return [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+        ]
+    return [origin.strip() for origin in origins_str.split(",") if origin.strip()]
 
 
 @asynccontextmanager
@@ -35,9 +51,12 @@ app = FastAPI(
 )
 
 # CORS middleware for frontend access
+allowed_origins = get_allowed_origins()
+print(f"🔒 CORS allowed origins: {allowed_origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure this for production
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
