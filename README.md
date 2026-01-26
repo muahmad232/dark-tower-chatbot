@@ -15,12 +15,12 @@ An intelligent RAG-powered chatbot for answering questions about Stephen King's 
 ## Project Structure
 
 ```
-├── backend/                  # FastAPI backend (deploy to Railway)
+├── backend/                  # FastAPI backend (deploy to Render)
 │   ├── chatbot.py            # Main chatbot with Groq LLM
 │   ├── server.py             # FastAPI server
 │   ├── requirements.txt      # Python dependencies
-│   ├── Procfile              # Start command
-│   ├── railway.json          # Railway configuration
+│   ├── Dockerfile            # Docker configuration
+│   ├── render.yaml           # Render configuration
 │   ├── scraper/
 │   │   ├── scrape_all.py     # Wiki scraper
 │   │   └── scrape_page.py    # Single page scraper
@@ -157,18 +157,18 @@ python embeddings/build_index.py
 
 ## Deployment
 
-### Backend (Railway)
+### Backend (Render)
 
-1. Go to [railway.app](https://railway.app) and create a new project
-2. Select **Deploy from GitHub repo**
-3. Connect your repository: `muahmad232/dark-tower-chatbot`
-4. Configure the service:
+1. Go to [render.com](https://render.com) → **New** → **Web Service**
+2. Connect your GitHub repo: `muahmad232/dark-tower-chatbot`
+3. Configure:
+   - **Name**: `dark-tower-chatbot`
    - **Root Directory**: `backend`
-   - Railway will auto-detect Python and use `railway.json`
-5. Add Environment Variables:
+   - **Runtime**: Docker
+4. Add Environment Variables:
    - `GROQ_API_KEY` = your Groq API key
    - `ALLOWED_ORIGINS` = your frontend URL (after deploying frontend)
-6. Deploy! You'll get a URL like `https://dark-tower-chatbot-production.up.railway.app`
+5. Deploy! You'll get a URL like `https://dark-tower-chatbot.onrender.com`
 
 ### Frontend (Vercel)
 
@@ -180,10 +180,10 @@ python embeddings/build_index.py
    - **Build Command**: `npm run build`
    - **Output Directory**: `build`
 4. Add Environment Variable:
-   - `REACT_APP_API_URL` = `https://your-backend.up.railway.app`
+   - `REACT_APP_API_URL` = `https://your-backend.onrender.com`
 5. Deploy!
 
-After frontend is deployed, go back to Railway and update:
+After frontend is deployed, go back to Render and update:
 - `ALLOWED_ORIGINS` = `https://your-frontend.vercel.app`
 
 ## Screenshots

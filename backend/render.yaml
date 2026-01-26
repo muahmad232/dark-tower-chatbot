@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: dark-tower-chatbot
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
