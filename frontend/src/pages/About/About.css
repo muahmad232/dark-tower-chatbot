@@ -1,0 +1,174 @@
+.about-page {
+  background-image: url('../../assests/images/dark tower desktop.jpeg');
+}
+
+.about-content {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+  position: relative;
+  z-index: 10;
+  overflow-y: auto;
+}
+
+.about-container {
+  max-width: 800px;
+  width: 100%;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 2.5rem;
+  backdrop-filter: blur(10px);
+}
+
+.about-title {
+  font-family: var(--font-heading);
+  font-size: 2.5rem;
+  color: var(--color-primary);
+  text-align: center;
+  margin-bottom: 2rem;
+  letter-spacing: 3px;
+  text-shadow: 0 0 20px rgba(201, 162, 39, 0.4);
+}
+
+.about-section {
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.about-section:last-of-type {
+  border-bottom: none;
+}
+
+.about-section h2 {
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  color: var(--color-primary);
+  margin-bottom: 1rem;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.section-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.about-section p {
+  color: var(--color-text);
+  line-height: 1.8;
+  margin-bottom: 1rem;
+}
+
+.about-section p:last-child {
+  margin-bottom: 0;
+}
+
+/* Book List */
+.book-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.book-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border-left: 3px solid var(--color-primary);
+}
+
+.book-number {
+  font-family: var(--font-heading);
+  color: var(--color-primary);
+  font-weight: 600;
+  min-width: 30px;
+}
+
+.book-title {
+  color: var(--color-text);
+}
+
+/* Tech List */
+.tech-list {
+  list-style: none;
+  padding: 0;
+  margin-top: 1rem;
+}
+
+.tech-list li {
+  padding: 0.5rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+  color: var(--color-text);
+}
+
+.tech-list li::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: var(--color-primary);
+}
+
+.tech-list strong {
+  color: var(--color-primary);
+}
+
+/* Disclaimer */
+.disclaimer {
+  font-size: 0.9rem;
+  color: var(--color-text-dim);
+  font-style: italic;
+}
+
+/* About Footer */
+.about-footer {
+  text-align: center;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.about-footer p {
+  font-family: var(--font-heading);
+  color: var(--color-primary);
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.about-footer span {
+  color: var(--color-text-dim);
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .about-page {
+    background-image: url('../../assests/images/dark tower mobile.jpeg');
+  }
+
+  .about-content {
+    padding: 1rem;
+  }
+
+  .about-container {
+    padding: 1.5rem;
+  }
+
+  .about-title {
+    font-size: 1.8rem;
+  }
+
+  .about-section h2 {
+    font-size: 1.1rem;
+  }
+}

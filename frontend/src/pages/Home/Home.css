@@ -1,0 +1,341 @@
+.home-page {
+  background-image: url('../../assests/images/dark tower desktop.jpeg');
+}
+
+.home-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  position: relative;
+  z-index: 10;
+}
+
+.hero-section {
+  text-align: center;
+  max-width: 900px;
+}
+
+/* ============================================
+   Ka Sigil - Mystical Symbol of Destiny
+   A refined, elegant circular emblem
+   ============================================ */
+
+.ka-wheel-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 2rem;
+  /* Subtle ambient glow */
+  filter: drop-shadow(0 0 20px rgba(180, 150, 80, 0.25));
+}
+
+.ka-wheel {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  animation: spin-sigil 30s linear infinite;
+}
+
+@keyframes spin-sigil {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Outer ring - thin, elegant border */
+.wheel-outer-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 2px solid #b8a060;
+  border-radius: 50%;
+  box-shadow: 
+    inset 0 0 8px rgba(160, 140, 80, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* Secondary inner ring for depth */
+.wheel-outer-ring::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  border: 1px solid rgba(180, 160, 96, 0.4);
+  border-radius: 50%;
+}
+
+/* Inner ring - central disc */
+.wheel-inner-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+  border: 1.5px solid #b8a060;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, 
+    rgba(30, 28, 25, 0.95) 0%, 
+    rgba(15, 14, 12, 0.98) 100%);
+  box-shadow: 
+    inset 0 1px 3px rgba(180, 160, 96, 0.15),
+    0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Radial lines - thin, precise spokes */
+.wheel-spoke {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(50% - 22px);
+  height: 1.5px;
+  margin-left: 22px;
+  background: linear-gradient(90deg, 
+    rgba(180, 160, 96, 0.9) 0%, 
+    rgba(160, 140, 80, 0.6) 70%,
+    rgba(140, 120, 70, 0.3) 100%);
+  transform-origin: left center;
+  border-radius: 1px;
+}
+
+.wheel-spoke:nth-child(1) { transform: rotate(0deg); }
+.wheel-spoke:nth-child(2) { transform: rotate(45deg); }
+.wheel-spoke:nth-child(3) { transform: rotate(90deg); }
+.wheel-spoke:nth-child(4) { transform: rotate(135deg); }
+.wheel-spoke:nth-child(5) { transform: rotate(180deg); }
+.wheel-spoke:nth-child(6) { transform: rotate(225deg); }
+.wheel-spoke:nth-child(7) { transform: rotate(270deg); }
+.wheel-spoke:nth-child(8) { transform: rotate(315deg); }
+
+/* Subtle end nodes - refined circular caps */
+.wheel-studs {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.wheel-studs span {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: radial-gradient(circle at 35% 35%, 
+    #c9b070 0%, 
+    #a08050 60%, 
+    #806840 100%);
+  border-radius: 50%;
+  box-shadow: 
+    inset 0 -1px 2px rgba(0, 0, 0, 0.3),
+    0 0 3px rgba(180, 160, 96, 0.4);
+}
+
+/* Position nodes at spoke ends - on the outer ring */
+.wheel-studs span:nth-child(1) { top: -3px; left: 50%; transform: translateX(-50%); }
+.wheel-studs span:nth-child(2) { top: 50%; right: -3px; transform: translateY(-50%); }
+.wheel-studs span:nth-child(3) { bottom: -3px; left: 50%; transform: translateX(-50%); }
+.wheel-studs span:nth-child(4) { top: 50%; left: -3px; transform: translateY(-50%); }
+.wheel-studs span:nth-child(5) { top: 14.6%; right: 14.6%; transform: translate(50%, -50%); }
+.wheel-studs span:nth-child(6) { bottom: 14.6%; right: 14.6%; transform: translate(50%, 50%); }
+.wheel-studs span:nth-child(7) { bottom: 14.6%; left: 14.6%; transform: translate(-50%, 50%); }
+.wheel-studs span:nth-child(8) { top: 14.6%; left: 14.6%; transform: translate(-50%, -50%); }
+
+/* Ka text - refined arcane lettering */
+.ka-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 3px;
+  color: #c4aa65;
+  text-shadow: 
+    0 1px 1px rgba(0, 0, 0, 0.5),
+    0 0 8px rgba(180, 160, 96, 0.3);
+  z-index: 10;
+  /* Slight metallic sheen */
+  background: linear-gradient(180deg, 
+    #d4be78 0%, 
+    #b8a060 50%, 
+    #9a8550 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-title {
+  font-family: var(--font-heading);
+  font-size: 4rem;
+  color: var(--color-primary);
+  letter-spacing: 8px;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 0 30px rgba(201, 162, 39, 0.6);
+}
+
+.hero-subtitle {
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  color: var(--color-text);
+  letter-spacing: 3px;
+  margin-bottom: 1.5rem;
+}
+
+.hero-description {
+  font-size: 1.1rem;
+  color: var(--color-text-dim);
+  line-height: 1.8;
+  max-width: 600px;
+  margin: 0 auto 2.5rem;
+  font-style: italic;
+}
+
+.hero-features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.feature-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--color-primary);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.feature-icon {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 0.75rem;
+}
+
+.feature-card h3 {
+  font-family: var(--font-heading);
+  color: var(--color-primary);
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.feature-card p {
+  color: var(--color-text-dim);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.cta-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 2.5rem;
+  background: linear-gradient(135deg, var(--color-primary-dim), var(--color-primary));
+  border: none;
+  border-radius: 50px;
+  color: var(--color-bg-dark);
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(201, 162, 39, 0.3);
+}
+
+.cta-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(201, 162, 39, 0.5);
+}
+
+.cta-arrow {
+  font-size: 1.4rem;
+  transition: transform 0.3s ease;
+}
+
+.cta-button:hover .cta-arrow {
+  transform: translateX(5px);
+}
+
+.hero-quote {
+  margin-top: 2rem;
+  font-family: var(--font-heading);
+  color: var(--color-text-dim);
+  font-size: 1rem;
+  letter-spacing: 1px;
+  opacity: 0.7;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .home-page {
+    background-image: url('../../assests/images/dark tower mobile.jpeg');
+  }
+
+  .home-content {
+    padding: 1rem;
+  }
+
+  .ka-wheel-container {
+    width: 90px;
+    height: 90px;
+    margin-bottom: 1.5rem;
+  }
+
+  .wheel-inner-ring {
+    width: 34px;
+    height: 34px;
+  }
+
+  .wheel-spoke {
+    width: calc(50% - 17px);
+    margin-left: 17px;
+    height: 1px;
+  }
+
+  .ka-text {
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+  }
+
+  .wheel-studs span {
+    width: 5px;
+    height: 5px;
+  }
+
+  .hero-title {
+    font-size: 2.5rem;
+    letter-spacing: 4px;
+  }
+
+  .hero-subtitle {
+    font-size: 1rem;
+    letter-spacing: 1px;
+  }
+
+  .hero-description {
+    font-size: 1rem;
+  }
+
+  .hero-features {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .cta-button {
+    padding: 0.875rem 2rem;
+    font-size: 1rem;
+  }
+}
