@@ -15,12 +15,11 @@ An intelligent RAG-powered chatbot for answering questions about Stephen King's 
 ## Project Structure
 
 ```
-├── backend/                  # FastAPI backend (deploy to Render)
+├── backend/                  # FastAPI backend (deploy to Hugging Face Spaces)
 │   ├── chatbot.py            # Main chatbot with Groq LLM
 │   ├── server.py             # FastAPI server
 │   ├── requirements.txt      # Python dependencies
 │   ├── Dockerfile            # Docker configuration
-│   ├── render.yaml           # Render configuration
 │   ├── scraper/
 │   │   ├── scrape_all.py     # Wiki scraper
 │   │   └── scrape_page.py    # Single page scraper
@@ -157,18 +156,18 @@ python embeddings/build_index.py
 
 ## Deployment
 
-### Backend (Render)
+### Backend (Hugging Face Spaces) - FREE
 
-1. Go to [render.com](https://render.com) → **New** → **Web Service**
-2. Connect your GitHub repo: `muahmad232/dark-tower-chatbot`
-3. Configure:
-   - **Name**: `dark-tower-chatbot`
-   - **Root Directory**: `backend`
-   - **Runtime**: Docker
-4. Add Environment Variables:
+1. Go to [huggingface.co/spaces](https://huggingface.co/spaces) → **Create new Space**
+2. Configure:
+   - **Space name**: `dark-tower-chatbot`
+   - **SDK**: Docker
+   - **Hardware**: CPU Basic (FREE - 16GB RAM)
+3. Clone your space and copy the `backend/` folder contents to it, or link to GitHub
+4. Add **Secrets** (Settings → Repository secrets):
    - `GROQ_API_KEY` = your Groq API key
-   - `ALLOWED_ORIGINS` = your frontend URL (after deploying frontend)
-5. Deploy! You'll get a URL like `https://dark-tower-chatbot.onrender.com`
+   - `ALLOWED_ORIGINS` = your frontend URL (after deploying)
+5. Deploy! URL: `https://your-username-dark-tower-chatbot.hf.space`
 
 ### Frontend (Vercel)
 
@@ -180,10 +179,10 @@ python embeddings/build_index.py
    - **Build Command**: `npm run build`
    - **Output Directory**: `build`
 4. Add Environment Variable:
-   - `REACT_APP_API_URL` = `https://your-backend.onrender.com`
+   - `REACT_APP_API_URL` = `https://your-username-dark-tower-chatbot.hf.space`
 5. Deploy!
 
-After frontend is deployed, go back to Render and update:
+After frontend is deployed, go back to Hugging Face and update:
 - `ALLOWED_ORIGINS` = `https://your-frontend.vercel.app`
 
 ## Screenshots
