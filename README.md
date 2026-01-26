@@ -1,6 +1,6 @@
-# Dark Tower Chatbot
+# Dark Tower Chatbot - KaGuide
 
-An intelligent RAG-powered chatbot for answering questions about Stephen King's Dark Tower series. Uses semantic search with FAISS vector indexing and Groq's Llama model for natural language responses.
+An intelligent RAG-powered chatbot for answering questions about Stephen King's Dark Tower series. Features a React frontend with immersive Dark Tower theming and spoiler protection.
 
 ## Features
 
@@ -9,17 +9,18 @@ An intelligent RAG-powered chatbot for answering questions about Stephen King's 
 - **Query-Aware Retrieval**: Intent detection that prioritizes relevant chunk types based on query patterns
 - **Category Matching**: Boosts results from matching categories (character queries → character chunks, etc.)
 - **LLM-Powered Responses**: Uses Groq API with Llama 3.1 for well-structured, contextual answers
+- **Spoiler Protection**: Set your reading progress to avoid spoilers from later books
+- **Dark Tower Themed UI**: Immersive React frontend with custom Ka sigil, icons, and atmospheric design
 
 ## Project Structure
 
 ```
-├── backend/                  # Deploy this folder to Render
+├── backend/                  # FastAPI backend (deploy to Render)
 │   ├── chatbot.py            # Main chatbot with Groq LLM
 │   ├── server.py             # FastAPI server
 │   ├── requirements.txt      # Python dependencies
 │   ├── Procfile              # Render start command
 │   ├── render.yaml           # Render configuration
-│   ├── .env                  # API keys (create this, not in git)
 │   ├── scraper/
 │   │   ├── scrape_all.py     # Wiki scraper
 │   │   └── scrape_page.py    # Single page scraper
@@ -27,12 +28,27 @@ An intelligent RAG-powered chatbot for answering questions about Stephen King's 
 │   │   └── chunk_text.py     # Text chunking
 │   ├── embeddings/
 │   │   ├── build_index.py    # FAISS index builder
-│   │   ├── test_search.py    # Search testing
 │   │   ├── index.faiss       # Vector index
 │   │   └── metadata.json     # Chunk metadata
 │   └── data/
 │       ├── raw_pages.json    # Scraped wiki data
 │       └── chunks.json       # Processed chunks
+├── frontend/                 # React frontend
+│   ├── public/               # Static assets
+│   ├── src/
+│   │   ├── components/       # Reusable UI components
+│   │   │   ├── Header/       # Navigation header
+│   │   │   ├── Footer/       # Page footer
+│   │   │   ├── ChatMessage/  # Chat message display
+│   │   │   └── SettingsPanel/ # Spoiler settings
+│   │   ├── pages/            # Route pages
+│   │   │   ├── Home/         # Landing page with Ka sigil
+│   │   │   ├── Chat/         # Chat interface
+│   │   │   └── About/        # About page
+│   │   ├── assests/          # Images and icons
+│   │   ├── App.jsx           # Router setup
+│   │   └── App.css           # Global styles
+│   └── package.json
 └── README.md
 ```
 
@@ -53,36 +69,43 @@ An intelligent RAG-powered chatbot for answering questions about Stephen King's 
    source venv/bin/activate
    ```
 
-3. Install dependencies:
+3. Install backend dependencies:
    ```bash
-   pip install requests beautifulsoup4 lxml tiktoken sentence-transformers faiss-cpu groq python-dotenv
+   pip install -r backend/requirements.txt
    ```
 
 4. Set up your API key:
    ```bash
-   # Create .env file
-   echo "GROQ_API_KEY=your_api_key_here" > .env
+   # Create .env file in backend folder
+   echo "GROQ_API_KEY=your_api_key_here" > backend/.env
    ```
    Get your free API key at: https://console.groq.com/keys
 
+5. Install frontend dependencies:
+   ```bash
+   cd frontend
+   npm install
+   ```
+
 ## Usage
 
-### Run the API Server (locally)
+### Run Both Backend and Frontend
 
+**Terminal 1 - Backend:**
 ```bash
 cd backend
-uvicorn server:app --reload
+uvicorn server:app --reload --port 8000
 ```
 
-Or with Python directly:
+**Terminal 2 - Frontend:**
 ```bash
-cd backend
-python server.py
+cd frontend
+npm start
 ```
 
-Then visit: http://localhost:8000/docs for interactive API documentation.
+Then visit: http://localhost:3000
 
-### Run the CLI Chatbot
+### Run the CLI Chatbot (Alternative)
 
 ```bash
 cd backend
@@ -132,19 +155,30 @@ python processor/chunk_text.py
 python embeddings/build_index.py
 ```
 
-#### 4. Test Search (Optional)
+## Deployment
 
-```bash
-python embeddings/test_search.py
-```
-
-## Deployment to Render
+### Backend (Render)
 
 1. Push to GitHub
 2. Create new Web Service on Render
 3. Set **Root Directory** to `backend`
 4. Add `GROQ_API_KEY` in Environment Variables
 5. Deploy!
+
+### Frontend (Vercel/Netlify)
+
+1. Set **Root Directory** to `frontend`
+2. Build command: `npm run build`
+3. Output directory: `build`
+4. Add environment variable: `REACT_APP_API_URL=https://your-backend-url.onrender.com`
+
+## Screenshots
+
+**Home Page** - Features the spinning Ka sigil symbolizing "Ka is a wheel"
+
+**Chat Interface** - Dark Tower themed chat with spoiler protection settings
+
+**About Page** - Information about the series and how KaGuide works
 
 ## Categories
 
@@ -158,7 +192,8 @@ The system categorizes content into:
 
 ## Technical Details
 
-- **LLM**: Groq API with `llama-3.1-8b-instant`
+- **Backend**: Python, FastAPI, Groq API (`llama-3.1-8b-instant`)
+- **Frontend**: React, React Router, CSS with custom theming
 - **Embedding Model**: `all-MiniLM-L6-v2` (384 dimensions)
 - **Vector Index**: FAISS IndexFlatIP (inner product similarity)
 - **Chunk Size**: 300 tokens with 75 token overlap
@@ -167,3 +202,7 @@ The system categorizes content into:
 ## License
 
 This project is for educational purposes. Dark Tower content belongs to Stephen King.
+
+---
+
+*"Go then, there are other worlds than these."*
