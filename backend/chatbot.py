@@ -33,18 +33,43 @@ BOOK_ORDER = [
     ("The Wind Through the Keyhole", ["wind through the keyhole", "dark tower 4.5"]),
 ]
 
+# Canonical book order injected into context for order-related questions.
+# Defined here so it lives in one place and matches BOOK_ORDER exactly.
+CANONICAL_BOOK_ORDER_TEXT = """CANONICAL DARK TOWER READING ORDER:
+  1. The Gunslinger (1982)
+  2. The Drawing of the Three (1987)
+  3. The Waste Lands (1991)
+  4. Wizard and Glass (1997)
+  4.5. The Wind Through the Keyhole (2012) — set between Wizard and Glass and Wolves of the Calla
+  5. Wolves of the Calla (2003)
+  6. Song of Susannah (2004)
+  7. The Dark Tower (2004)"""
+
+# Keywords that indicate the user is asking about reading/publication order.
+ORDER_KEYWORDS = [
+    'reading order', 'read order', 'book order', 'what order', 'which order',
+    'order to read', 'series order', 'in what order', 'list the books',
+    'all the books', 'how many books', 'list all books', 'books in order',
+    'order of the books', 'what are the books',
+]
+
 # Base system prompt
-BASE_SYSTEM_PROMPT = """You are a knowledgeable assistant specializing in Stephen King's Dark Tower series. 
-You answer questions ONLY based on the provided context from the Dark Tower wiki.
+BASE_SYSTEM_PROMPT = """You are a knowledgeable assistant specializing in Stephen King's Dark Tower series.
 
 Guidelines:
-- Use ONLY the information provided in the context below
-- If the context doesn't contain enough information to answer, say so honestly
-- Structure your answers clearly with paragraphs
-- Use bullet points for lists when appropriate
-- Reference character names, places, and events accurately
-- Keep answers informative but concise
+- Answer using the provided context. If book-order data is included in the context, use it exactly as written.
+- If the context doesn't contain enough information to answer, say so honestly.
+- Structure your answers clearly with paragraphs.
+- Use bullet points for lists when appropriate.
+- Reference character names, places, and events accurately.
+- Keep answers informative but concise.
 - If asked about something not in the context, say "I don't have information about that in my knowledge base."
+- Use markdown formatting: **bold** for character names and key terms, bullet points for lists.
+
+CRITICAL TONE RULES — never break these:
+- NEVER open with "Based on the provided context", "According to the context", "Based on the information provided", or any similar hedging phrase. Just answer directly.
+- NEVER say "the context mentions" or "the context states". Speak as an expert, not as a reader of a document.
+- Start your answer immediately with the relevant information.
 
 Remember: You are a Dark Tower expert. Speak with authority but stay faithful to the source material."""
 
@@ -107,7 +132,7 @@ GOODBYE_RESPONSES = [
 
 class DarkTowerChatbot:
     def __init__(self):
-        print("🗼 Initializing Dark Tower Chatbot...")
+        print("[*] Initializing Dark Tower Chatbot...")
         
         # Load embedding model
         print("  Loading embedding model...")
@@ -131,7 +156,7 @@ class DarkTowerChatbot:
         self.spoiler_mode = False  # False = spoiler-free, True = full spoilers allowed
         self.book_limit = None     # None = no limit, or book name string
         
-        print("✅ Chatbot ready!\n")
+        print("[+] Chatbot ready!\n")
     
     def handle_conversation(self, message: str) -> str | None:
         """Handle casual conversation. Returns response or None if not conversational."""
@@ -301,36 +326,61 @@ Now, traveler... what would you know?"""
         
         return "\n\n---\n\n".join(context_parts)
     
-    def ask(self, question: str, show_sources: bool = True) -> str:
-        """Ask a question and get a response."""
-        # Search for relevant context
-        results = self.search(question, top_k=5)
+    def ask(self, question: str, show_sources: bool = True, conversation_history: list = None) -> str:
+        """Ask a question and get a response.
         
-        if not results:
-            return "The mist obscures my vision, sai. I cannot find that knowledge in my memories of Mid-World. Perhaps try asking in a different way?"
-        
-        # Build context
-        context = self.build_context(results)
-        
-        # Build user message
-        user_message = f"""CONTEXT FROM DARK TOWER WIKI:
-{context}
+        Args:
+            question: The user's current question.
+            show_sources: Whether to append source references to the answer.
+            conversation_history: Optional list of previous {role, content} dicts
+                                  (alternating user/assistant), used to give the LLM
+                                  memory of the ongoing conversation. Each entry must
+                                  have keys 'role' ('user'|'assistant') and 'content' (str).
+        """
+        question_lower = question.lower()
 
-USER QUESTION: {question}
+        # --- Reading order shortcut ---
+        # Bypass FAISS entirely for order queries: the canonical list is the only
+        # source of truth. We give the LLM a tightly constrained prompt that
+        # instructs it to reproduce the list ONCE with no preamble, no reasoning,
+        # and no commentary, preventing the double-list / leaked-thinking bug.
+        if any(kw in question_lower for kw in ORDER_KEYWORDS):
+            current_user_message = (
+                f"{CANONICAL_BOOK_ORDER_TEXT}\n\n"
+                "Output ONLY the numbered list above, exactly as written. "
+                "Do NOT add any introduction, explanation, commentary, or closing sentence. "
+                "Do NOT output the list more than once. Just the list, nothing else."
+            )
+            results = []  # no FAISS results needed
+        else:
+            # Search for relevant context using the current question
+            results = self.search(question, top_k=5)
 
-Please provide a helpful, accurate answer based solely on the context above."""
+            if not results:
+                return "The mist obscures my vision, sai. I cannot find that knowledge in my memories of Mid-World. Perhaps try asking in a different way?"
+
+            context = self.build_context(results)
+            current_user_message = (
+                f"CONTEXT:\n{context}\n\n"
+                f"USER QUESTION: {question}\n\n"
+                "Answer using the information in the CONTEXT above."
+            )
 
         # Get the appropriate system prompt based on spoiler settings
         system_prompt = self.get_system_prompt()
+
+        # Build the full messages list:
+        #   [system] → [history turn 1] → [history turn 2] → … → [current question]
+        messages = [{"role": "system", "content": system_prompt}]
+        if conversation_history:
+            messages.extend(conversation_history)
+        messages.append({"role": "user", "content": current_user_message})
 
         # Get response from Groq
         try:
             response = self.groq.chat.completions.create(
                 model=self.llm_model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_message}
-                ],
+                messages=messages,
                 temperature=0.7,
                 max_tokens=1024
             )
@@ -341,7 +391,7 @@ Please provide a helpful, accurate answer based solely on the context above."""
         # Format output
         output = answer
         
-        if show_sources:
+        if show_sources and results:
             sources = list(set(r['source'] for r in results))
             output += f"\n\n📚 **Sources:** {', '.join(sources)}"
         

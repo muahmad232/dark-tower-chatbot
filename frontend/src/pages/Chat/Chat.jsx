@@ -51,6 +51,13 @@ function Chat() {
     setIsLoading(true);
 
     try {
+      // --------------- Session memory ---------------
+      // sessionStorage is tab-scoped: it survives page refreshes within the
+      // same tab but is automatically cleared the moment the tab is closed.
+      // This gives us zero-persistence-after-close without any database.
+      const currentSessionId = sessionStorage.getItem('ka_session_id') || null;
+      // -----------------------------------------------
+
       const response = await fetch(`${API_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -58,11 +65,19 @@ function Chat() {
           question: input,
           spoiler_mode: settings.spoilerMode,
           book_limit: getBookName(settings.bookLimit),
-          show_sources: settings.showSources
+          show_sources: settings.showSources,
+          // null on the first message → server mints a fresh UUID and returns it
+          session_id: currentSessionId,
         })
       });
 
       const data = await response.json();
+
+      // Save the server-assigned session_id so subsequent messages are
+      // linked to the same conversation history on the backend.
+      if (data.session_id) {
+        sessionStorage.setItem('ka_session_id', data.session_id);
+      }
       
       // Build response with optional sources
       let responseText = data.answer || "I could not find an answer, sai.";

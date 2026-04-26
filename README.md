@@ -31,9 +31,11 @@
 |---------|-------------|
 | 🔍 **RAG-Powered Search** | Semantic search through Dark Tower wiki content using FAISS vector index |
 | 🤖 **LLM Responses** | Natural language answers powered by Groq's Llama 3.1 |
+| 🧠 **Session Memory** | Remembers the last 6 exchanges per conversation — follow-up questions work naturally |
 | 🛡️ **Spoiler Protection** | Set your reading progress to avoid spoilers from later books |
 | 📚 **Book-Aware Context** | Responses limited to books you've read |
-| 🎨 **Themed UI** | Immersive Dark Tower aesthetic with Ka sigil animation |
+| 📖 **Accurate Book Order** | Canonical reading order is hardcoded and bypasses FAISS — always correct |
+| 🎨 **Themed UI** | Immersive Dark Tower aesthetic with Ka sigil animation and markdown rendering |
 | ⚡ **Fast & Free** | Deployed on Hugging Face Spaces (16GB RAM) and Vercel |
 
 ---
@@ -51,18 +53,33 @@
 ## 🏗️ Architecture
 
 ```
-┌─────────────────┐         ┌─────────────────────────────────┐
-│                 │         │         Backend (HF Spaces)     │
-│   React App     │  HTTP   │  ┌─────────┐    ┌───────────┐  │
-│   (Vercel)      │ ──────► │  │ FastAPI │───►│   Groq    │  │
-│                 │         │  └────┬────┘    │   LLM     │  │
-│  • Chat UI      │         │       │         └───────────┘  │
-│  • Settings     │         │       ▼                        │
-│  • Ka Sigil     │         │  ┌─────────┐    ┌───────────┐  │
-│                 │         │  │  FAISS  │◄───│ Sentence  │  │
-└─────────────────┘         │  │  Index  │    │Transformer│  │
-                            │  └─────────┘    └───────────┘  │
-                            └─────────────────────────────────┘
+┌─────────────────┐         ┌──────────────────────────────────────┐
+│                 │         │          Backend (HF Spaces)          │
+│   React App     │  HTTP   │  ┌──────────┐    ┌────────────────┐  │
+│   (Vercel)      │ ──────► │  │ FastAPI  │───►│   Groq LLM     │  │
+│                 │         │  └────┬─────┘    │ llama-3.1-8b   │  │
+│  • Chat UI      │         │       │          └────────────────┘  │
+│  • Settings     │         │       ▼                              │
+│  • Session      │         │  ┌──────────┐    ┌────────────────┐  │
+│    Memory       │         │  │  FAISS   │◄───│   Sentence     │  │
+│                 │         │  │  Index   │    │  Transformer   │  │
+└─────────────────┘         │  └──────────┘    └────────────────┘  │
+    sessionStorage           │                                      │
+    (tab-scoped session_id)  │  In-memory session store (RAM only)  │
+                             └──────────────────────────────────────┘
+```
+
+### Conversation Flow
+
+```
+User message + session_id
+        │
+        ├─► Order question?  YES ──► Canonical list (bypass FAISS) ──► Groq ──► Answer
+        │
+        └─► NO ──► FAISS semantic search ──► top-5 chunks ──► Rerank ──► Groq (+ history) ──► Answer
+                                                                               │
+                                                                        Session history
+                                                                        (last 6 pairs)
 ```
 
 ---
@@ -86,6 +103,7 @@
 | ![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white) | Hosting & deployment |
 | **React Router** | Client-side routing |
 | **CSS3** | Custom Dark Tower theming |
+| **sessionStorage** | Tab-scoped session memory (auto-cleared on tab close) |
 
 ---
 
@@ -94,8 +112,8 @@
 ```
 dark-tower-chatbot/
 ├── backend/                      # FastAPI backend (Hugging Face Spaces)
-│   ├── chatbot.py                # Main chatbot with Groq LLM
-│   ├── server.py                 # FastAPI REST API
+│   ├── chatbot.py                # Core chatbot: RAG, session memory, spoiler logic
+│   ├── server.py                 # FastAPI REST API + in-memory session store
 │   ├── Dockerfile                # Container configuration
 │   ├── requirements.txt          # Python dependencies
 │   ├── data/
@@ -114,11 +132,11 @@ dark-tower-chatbot/
 │   │   ├── components/           # Reusable UI components
 │   │   │   ├── Header/           # Navigation header
 │   │   │   ├── Footer/           # Page footer
-│   │   │   ├── ChatMessage/      # Chat bubbles
+│   │   │   ├── ChatMessage/      # Chat bubbles with markdown rendering
 │   │   │   └── SettingsPanel/    # Spoiler settings
 │   │   ├── pages/                # Route pages
 │   │   │   ├── Home/             # Landing with Ka sigil
-│   │   │   ├── Chat/             # Chat interface
+│   │   │   ├── Chat/             # Chat interface + session memory
 │   │   │   └── About/            # About page
 │   │   └── assests/              # Images & icons
 │   ├── package.json
@@ -126,6 +144,27 @@ dark-tower-chatbot/
 │
 └── README.md
 ```
+
+---
+
+## 🧠 Session Memory
+
+KaGuide maintains a **temporary, in-memory conversation history** so you can ask natural follow-up questions:
+
+> *"What is the Dark Tower?"* → *"How is Roland related to it?"* → *"And what about Jake?"*
+
+### How it works
+
+| Aspect | Detail |
+|--------|--------|
+| **Storage** | Python dict in RAM — no database, no disk writes |
+| **Scope** | Per browser tab via `sessionStorage` — cleared automatically on tab close |
+| **Window** | Last **6 exchange pairs** (12 messages) passed to the LLM |
+| **Session ID** | UUID4 generated server-side on the first message, returned to the client |
+| **Expiry** | Sessions idle for **30 minutes** are pruned by a background task |
+| **Privacy** | Memory never persists beyond the current server process or browser tab |
+
+The `session_id` is an opaque token. Each browser tab gets its own independent conversation history.
 
 ---
 
@@ -218,13 +257,13 @@ Visit: **http://localhost:3000**
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/` | GET | Welcome message & API info |
-| `/health` | GET | Health check |
-| `/chat` | POST | Ask a question |
+| `/health` | GET | Health check + active session count |
+| `/chat` | POST | Ask a question (supports session memory) |
 | `/settings` | GET | Get current settings |
 | `/settings` | POST | Update spoiler/book settings |
-| `/books` | GET | List all books in order |
+| `/books` | GET | List all books in reading order |
 
-### Example Request
+### `/chat` Request & Response
 
 ```bash
 curl -X POST "https://muahmad123-dark-tower-chatbot.hf.space/chat" \
@@ -232,9 +271,31 @@ curl -X POST "https://muahmad123-dark-tower-chatbot.hf.space/chat" \
   -d '{
     "question": "Who is Roland Deschain?",
     "spoiler_mode": false,
-    "book_limit": "The Gunslinger"
+    "book_limit": "The Gunslinger",
+    "show_sources": true,
+    "session_id": null
   }'
 ```
+
+**Request fields:**
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `question` | string | required | Your question |
+| `spoiler_mode` | bool | `false` | Allow full spoilers |
+| `book_limit` | string\|null | `null` | Restrict to books up to this title |
+| `show_sources` | bool | `true` | Include wiki source references |
+| `session_id` | string\|null | `null` | Session token from a previous response; omit on the first message |
+
+**Response fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `answer` | string | Markdown-formatted answer |
+| `sources` | string[] | Wiki pages used as context |
+| `spoiler_mode` | bool | Active spoiler setting |
+| `book_limit` | string\|null | Active book limit |
+| `session_id` | string | Store this and send it with the next message to maintain context |
 
 ---
 
@@ -246,10 +307,10 @@ curl -X POST "https://muahmad123-dark-tower-chatbot.hf.space/chat" \
 | 2 | The Drawing of the Three | 1987 |
 | 3 | The Waste Lands | 1991 |
 | 4 | Wizard and Glass | 1997 |
+| 4.5 | The Wind Through the Keyhole | 2012 |
 | 5 | Wolves of the Calla | 2003 |
 | 6 | Song of Susannah | 2004 |
 | 7 | The Dark Tower | 2004 |
-| 4.5 | The Wind Through the Keyhole | 2012 |
 
 ---
 
@@ -263,16 +324,17 @@ KaGuide includes built-in spoiler protection:
 
 ---
 
-## 🎨 Screenshots
+## 🎨 Markdown Rendering
 
-### Home Page
-*Features the spinning Ka sigil - "Ka is a wheel"*
+The chat interface renders LLM responses as formatted text — no raw asterisks:
 
-### Chat Interface  
-*Dark Tower themed chat with spoiler protection settings*
-
-### About Page
-*Information about the series and how KaGuide works*
+| Markdown | Rendered as |
+|----------|-------------|
+| `**Roland Deschain**` | **Roland Deschain** |
+| `*ka-tet*` | *ka-tet* |
+| `- item` / `• item` | Bullet list with gold markers |
+| `1. item` | Numbered list |
+| Blank line | Paragraph spacing |
 
 ---
 
@@ -288,7 +350,7 @@ KaGuide includes built-in spoiler protection:
 
 ## 📄 License
 
-This project is for **educational purposes only**. 
+This project is for **educational purposes only**.
 
 Dark Tower content and characters are the property of **Stephen King**. This is a fan project and is not affiliated with or endorsed by Stephen King or his publishers.
 
