@@ -19,6 +19,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install Git LFS
+        run: |
+          sudo apt-get install -y git-lfs
+          git lfs install
+
       - name: Push backend directory to Hugging Face Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
@@ -27,19 +32,28 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
 
-          # 1. Clone the Hugging Face Space into a temp folder
+          # 1. Clone the Hugging Face Space into a temp folder (with LFS support)
+          git lfs install
           git clone https://muahmad123:${HF_TOKEN}@huggingface.co/spaces/muahmad123/dark-tower-chatbot /tmp/hf_space
 
           # 2. Navigate into the cloned HF space
           cd /tmp/hf_space
 
-          # 3. Remove all old files (keep the hidden .git folder intact)
-          find . -maxdepth 1 ! -name '.git' ! -name '.' ! -name '..' -exec rm -rf {} +
+          # 3. Track binary files with Git LFS
+          git lfs track "*.faiss"
+          git lfs track "*.bin"
+          git lfs track "*.pt"
+          git lfs track "*.pkl"
+          git add .gitattributes
 
-          # 4. Copy the entire contents of the GitHub backend/ folder into the HF space root
+          # 4. Remove all old files (keep the hidden .git folder intact)
+          find . -maxdepth 1 ! -name '.git' ! -name '.gitattributes' ! -name '.' ! -name '..' -exec rm -rf {} +
+
+          # 5. Copy the entire contents of the GitHub backend/ folder into the HF space root
           cp -r $GITHUB_WORKSPACE/backend/* .
 
-          # 5. Stage, commit, and push to Hugging Face
+          # 6. Stage, commit, and push to Hugging Face
           git add .
           git commit -m "Auto-sync backend from GitHub Actions [$(date -u '+%Y-%m-%d %H:%M UTC')]" || echo "No changes to commit"
           git push
+
