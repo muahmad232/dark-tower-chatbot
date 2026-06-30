@@ -7,7 +7,7 @@ import numpy as np
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # Load index & metadata
-index = faiss.read_index("embeddings/index.faiss")
+index = faiss.read_index("E:\Data Science projects\Dark Tower Chatbot\backend\embeddings\index.faiss")
 
 with open("embeddings/metadata.json", "r", encoding="utf-8") as f:
     chunks = json.load(f)

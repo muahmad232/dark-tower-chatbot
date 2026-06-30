@@ -5,11 +5,25 @@ Uses FAISS index for context retrieval and Groq for response generation.
 
 import os
 import json
-import faiss
+try:
+    import faiss
+except ImportError:
+    faiss = None  # FAISS not available; will be mocked or disabled in tests
 import numpy as np
-from sentence_transformers import SentenceTransformer
-from dotenv import load_dotenv
-from groq import Groq
+
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = lambda *args, **kwargs: None
+try:
+    from sentence_transformers import SentenceTransformer
+except ImportError:
+    SentenceTransformer = None  # placeholder when unavailable
+
+try:
+    from groq import Groq
+except ImportError:
+    Groq = None  # placeholder when unavailable
 
 # Load environment variables (look in parent directory too)
 load_dotenv()
@@ -32,6 +46,19 @@ BOOK_ORDER = [
     ("The Dark Tower", ["dark tower vii", "dark tower 7", "the dark tower vii"]),
     ("The Wind Through the Keyhole", ["wind through the keyhole", "dark tower 4.5"]),
 ]
+
+# Exact source field values as stored in chunks.json, mapped by BOOK_ORDER display name.
+# Used for precise chunk lookup (avoids false matches like "The Dark Tower" matching all sources).
+BOOK_SOURCES = {
+    "The Gunslinger":              "The Dark Tower I: The Gunslinger",
+    "The Drawing of the Three":    "The Dark Tower II: The Drawing of the Three",
+    "The Waste Lands":             "The Dark Tower III: The Waste Lands",
+    "Wizard and Glass":            "The Dark Tower IV: Wizard and Glass",
+    "Wolves of the Calla":         "The Dark Tower V: Wolves of the Calla",
+    "Song of Susannah":            "The Dark Tower VI: Song of Susannah",
+    "The Dark Tower":              "The Dark Tower VII: The Dark Tower",
+    "The Wind Through the Keyhole": "The Dark Tower: The Wind Through the Keyhole",
+}
 
 # Canonical book order injected into context for order-related questions.
 # Defined here so it lives in one place and matches BOOK_ORDER exactly.
@@ -129,30 +156,38 @@ GOODBYE_RESPONSES = [
     "May the Man Jesus watch over you, and may you reach your Tower.",
 ]
 
-
 class DarkTowerChatbot:
     def __init__(self):
         print("[*] Initializing Dark Tower Chatbot...")
         
         # Load embedding model
         print("  Loading embedding model...")
-        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-        
+        if SentenceTransformer:
+            self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        else:
+            self.embedding_model = None  # Embedding model unavailable, placeholder
+
         # Load FAISS index
         print("  Loading FAISS index...")
-        self.index = faiss.read_index(INDEX_PATH)
-        
+        if faiss:
+            self.index = faiss.read_index(INDEX_PATH)
+        else:
+            self.index = None  # FAISS unavailable, index disabled        
         # Load metadata
         print("  Loading metadata...")
         with open(METADATA_PATH, 'r', encoding='utf-8') as f:
             self.metadata = json.load(f)
+        # expose book order for external use
+        self.BOOK_ORDER = BOOK_ORDER
         
         # Initialize Groq client
         print("  Connecting to Groq...")
-        self.groq = Groq(api_key=os.getenv("GROQ_API_KEY"))
-        self.llm_model = "llama-3.1-8b-instant"  # Fast, free model
+        if Groq:
+            self.groq = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        else:
+            self.groq = None  # Groq client unavailable, placeholder
         
-        # Spoiler protection settings
+        self.llm_model = "openai/gpt-oss-20b"  # Fast, free model
         self.spoiler_mode = False  # False = spoiler-free, True = full spoilers allowed
         self.book_limit = None     # None = no limit, or book name string
         
@@ -314,6 +349,7 @@ Now, traveler... what would you know?"""
         
         # Sort by adjusted score and return top_k
         results.sort(key=lambda x: x['score'], reverse=True)
+        print(results[:top_k])
         return results[:top_k]
     
     def build_context(self, results: list) -> str:
@@ -352,6 +388,66 @@ Now, traveler... what would you know?"""
                 "Do NOT output the list more than once. Just the list, nothing else."
             )
             results = []  # no FAISS results needed
+        
+        # --- Book descriptions shortcut (all books) ---
+        elif ("each book" in question_lower or "all books" in question_lower or "every book" in question_lower) and any(kw in question_lower for kw in ["short description", "description", "summary", "overview", "tell me about", "about each"]):
+            # Gather all summary/synopsis chunks for each book using EXACT source names
+            summary_content = ""
+            for name, _ in BOOK_ORDER:
+                exact_source = BOOK_SOURCES.get(name, name)
+                chunks = [
+                    c for c in self.metadata
+                    if c.get('metadata', {}).get('source', '') == exact_source
+                    and c.get('metadata', {}).get('chunk_type') in ['summary', 'synopsis']
+                    # Skip pure metadata lines (Author/Pages/Publisher headers)
+                    and not c.get('text', '').strip().startswith('**Author:**')
+                ]
+                if chunks:
+                    # Take the first narrative chunk (skip metadata-heavy ones)
+                    text = chunks[0].get('text', '').strip()
+                    truncated = text[:350]
+                    summary_content += f"\n\n{name}: {truncated}..."
+
+            if not summary_content.strip():
+                results = self.search(question, top_k=5)
+            else:
+                all_books_system = (
+                    "You are a Stephen King Dark Tower series expert. "
+                    "You are given text snippets from each book. "
+                    "For each book, write exactly two sentences describing what happens in the story — thematic, engaging, spoiler-light. "
+                    "Do NOT mention page counts, publishers, authors, or any metadata. "
+                    "List all books in the order given. "
+                    "Do NOT add any preamble, intro, or closing sentence."
+                )
+                all_books_user = (
+                    f"Snippets:\n{summary_content}\n\n"
+                    "Write a two-sentence story summary for each book, in order. No metadata."
+                )
+                if self.groq:
+                    try:
+                        resp = self.groq.chat.completions.create(
+                            model=self.llm_model,
+                            messages=[
+                                {"role": "system", "content": all_books_system},
+                                {"role": "user",   "content": all_books_user},
+                            ],
+                            temperature=0.4,
+                            max_tokens=2048,
+                        )
+                        return resp.choices[0].message.content
+                    except Exception as e:
+                        return f"Error getting response from Groq: {str(e)}"
+                else:
+                    return all_books_user
+
+        # --- Book summary shortcut (single book) ---
+        elif any(phrase in question_lower for phrase in ["summary of", "summarize", "tell me about the book"]):
+            book_name = next((name for name, _ in BOOK_ORDER if name.lower() in question_lower), None)
+            if book_name:
+                current_user_message = f"Provide a comprehensive summary of the Dark Tower novel '{book_name}'."
+                results = []
+            else:
+                results = self.search(question, top_k=5)
         else:
             # Search for relevant context using the current question
             results = self.search(question, top_k=5)
@@ -376,17 +472,21 @@ Now, traveler... what would you know?"""
             messages.extend(conversation_history)
         messages.append({"role": "user", "content": current_user_message})
 
-        # Get response from Groq
-        try:
-            response = self.groq.chat.completions.create(
-                model=self.llm_model,
-                messages=messages,
-                temperature=0.7,
-                max_tokens=1024
-            )
-            answer = response.choices[0].message.content
-        except Exception as e:
-            return f"Error getting response from Groq: {str(e)}"
+        # Get response from Groq (or fallback if unavailable)
+        if self.groq is None:
+            # No LLM available – return the user message as answer
+            answer = current_user_message
+        else:
+            try:
+                response = self.groq.chat.completions.create(
+                    model=self.llm_model,
+                    messages=messages,
+                    temperature=0.4,
+                    max_tokens=1024
+                )
+                answer = response.choices[0].message.content
+            except Exception as e:
+                return f"Error getting response from Groq: {str(e)}"
         
         # Format output
         output = answer
@@ -505,6 +605,9 @@ def main():
     chatbot = DarkTowerChatbot()
     chatbot.chat()
 
+
+# Alias for backward compatibility
+Chatbot = DarkTowerChatbot
 
 if __name__ == "__main__":
     main()

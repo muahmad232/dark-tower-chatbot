@@ -135,7 +135,7 @@ def split_into_paragraphs(text):
         else:
             result.append(para)
     
-    return result
+    return resultk
 
 
 def get_overlap_text(text, overlap_tokens):

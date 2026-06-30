@@ -41,3 +41,6 @@ Thumbs.db
 # Environment variables
 .env
 .env.local
+
+.Backend_Overview.md
+.Frontend_Overview.md
