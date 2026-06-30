@@ -67,7 +67,7 @@ CANONICAL_BOOK_ORDER_TEXT = """CANONICAL DARK TOWER READING ORDER:
   2. The Drawing of the Three (1987)
   3. The Waste Lands (1991)
   4. Wizard and Glass (1997)
-  4.5. The Wind Through the Keyhole (2012) — set between Wizard and Glass and Wolves of the Calla
+  The Wind Through the Keyhole (2012) — set between Wizard and Glass and Wolves of the Calla
   5. Wolves of the Calla (2003)
   6. Song of Susannah (2004)
   7. The Dark Tower (2004)"""
